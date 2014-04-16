@@ -2,6 +2,7 @@
 /build/
 /bin/
 target/
+src/main/generated/
  
 # OS Files #
 .DS_Store
