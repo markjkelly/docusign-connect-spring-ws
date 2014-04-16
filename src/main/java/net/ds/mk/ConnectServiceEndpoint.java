@@ -13,20 +13,11 @@ public class ConnectServiceEndpoint {
 	@PayloadRoot(localPart = "DocuSignConnectUpdate", namespace = CONNECT_TARGET_NAMESPACE)
 	public @ResponsePayload
 	DocuSignConnectUpdateResponse docusignConnectUpdate(@RequestPayload DocuSignConnectUpdate request) {
-		System.out.println("******** Entering docusignConnectUpdate (New) ***************");
 
 		DocuSignConnectUpdateResponse response = new DocuSignConnectUpdateResponse();
 		
-		try {
-			System.out.println("Envelope ID: [" + request.getDocuSignEnvelopeInformation().getEnvelopeStatus().getEnvelopeID() + "]");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 		response.setEnvelopeID(request.getDocuSignEnvelopeInformation().getEnvelopeStatus().getEnvelopeID());
 
-		System.out.println("******** Exiting docusignConnectUpdate ***************");
 		return response;
 	}
 }
