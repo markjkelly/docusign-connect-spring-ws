@@ -4,7 +4,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
+import java.sql.Timestamp;
+import java.util.Enumeration;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -13,39 +16,34 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.GenericXmlApplicationContext;
+import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.server.EndpointInterceptor;
 import org.springframework.ws.soap.SoapMessage;
+import org.springframework.ws.transport.context.TransportContext;
+import org.springframework.ws.transport.context.TransportContextHolder;
+import org.springframework.ws.transport.http.HttpServletConnection;
 
 public class MyRequestResponseInterceptor implements EndpointInterceptor {
 
 	public boolean handleRequest(MessageContext messageContext, Object endpoint)
 			throws Exception {
 
-		SoapMessage soapMessage = (SoapMessage) messageContext.getRequest();
-
-		// logRequestToFile(soapMessage, "request");
-
-		// Useful for logging request when deployed on Heroku
-		System.out.println();
-		System.out.println("-------------- handleRequest SOAP Start --------------");
-		soapMessage.writeTo(System.out);
-		System.out.println();
-		System.out.println("-------------- handleRequest SOAP End --------------");
-		System.out.println();
-		
 		return true;
 	}
 
 	public boolean handleResponse(MessageContext messageContext, Object endpoint)
 			throws Exception {
 
-		SoapMessage soapMessage = (SoapMessage) messageContext.getResponse();
+		// SoapMessage soapMessage = (SoapMessage) messageContext.getResponse();
 
 		// logRequestToFile(soapMessage, "response");
 
 		// Useful for logging request when deployed on Heroku
-//		soapMessage.writeTo(System.out);
+		// soapMessage.writeTo(System.out);
 
 		return true;
 	}
@@ -58,8 +56,66 @@ public class MyRequestResponseInterceptor implements EndpointInterceptor {
 
 	public void afterCompletion(MessageContext messageContext, Object endpoint,
 			Exception ex) throws Exception {
-		// TODO Auto-generated method stub
 
+		SoapMessage soapMessage = (SoapMessage) messageContext.getRequest();
+
+		// logRequestToFile(soapMessage, "request");
+
+		HttpServletRequest httpServletRequest = getHttpServletRequest();
+
+		Enumeration enumeration = httpServletRequest.getHeaderNames();
+
+		System.out.println();
+		System.out
+				.println("-------------- Start Request HTTP Headers --------------");
+
+		while (enumeration.hasMoreElements()) {
+			String headerName = (String) enumeration.nextElement();
+			System.out.println("Name: [" + headerName + "], value: ["
+					+ getHttpHeaderValue(headerName) + "]");
+		}
+
+		System.out
+				.println("-------------- End Request HTTP Headers --------------");
+
+		// Useful for logging request when deployed on Heroku
+		System.out.println();
+		System.out
+				.println("-------------- handleRequest SOAP Start --------------");
+		soapMessage.writeTo(System.out);
+		System.out.println();
+		System.out
+				.println("-------------- handleRequest SOAP End --------------");
+		System.out.println();
+
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		soapMessage.writeTo(out);
+		String strMsg = new String(out.toByteArray());
+
+		ApplicationContext ctx = new AnnotationConfigApplicationContext(
+				MongoConfig.class);
+		MongoOperations mongoOperation = (MongoOperations) ctx
+				.getBean("mongoTemplate");
+
+		ConnectUpdate connectUpdate = new ConnectUpdate();
+		connectUpdate.setPayload(strMsg);
+		java.util.Date date = new java.util.Date();
+		connectUpdate.setTimestamp(new Timestamp(date.getTime()));
+
+		mongoOperation.save(connectUpdate);
+
+	}
+
+	protected HttpServletRequest getHttpServletRequest() {
+		TransportContext ctx = TransportContextHolder.getTransportContext();
+		return (null != ctx) ? ((HttpServletConnection) ctx.getConnection())
+				.getHttpServletRequest() : null;
+	}
+
+	protected String getHttpHeaderValue(final String headerName) {
+		HttpServletRequest httpServletRequest = getHttpServletRequest();
+		return (null != httpServletRequest) ? httpServletRequest
+				.getHeader(headerName) : null;
 	}
 
 	private void logRequestToFile(SoapMessage soapMessage, String method) {
