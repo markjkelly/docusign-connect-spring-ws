@@ -16,10 +16,8 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.support.GenericXmlApplicationContext;
-import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.ws.context.MessageContext;
 import org.springframework.ws.server.EndpointInterceptor;
 import org.springframework.ws.soap.SoapMessage;
@@ -29,8 +27,13 @@ import org.springframework.ws.transport.http.HttpServletConnection;
 
 public class MyRequestResponseInterceptor implements EndpointInterceptor {
 
+	@Autowired
+	MongoTemplate mongoTemplate;
+
 	public boolean handleRequest(MessageContext messageContext, Object endpoint)
 			throws Exception {
+
+		System.out.println("Entering handleRequest");
 
 		return true;
 	}
@@ -38,12 +41,7 @@ public class MyRequestResponseInterceptor implements EndpointInterceptor {
 	public boolean handleResponse(MessageContext messageContext, Object endpoint)
 			throws Exception {
 
-		// SoapMessage soapMessage = (SoapMessage) messageContext.getResponse();
-
-		// logRequestToFile(soapMessage, "response");
-
-		// Useful for logging request when deployed on Heroku
-		// soapMessage.writeTo(System.out);
+		System.out.println("Entering handleResponse");
 
 		return true;
 	}
@@ -56,6 +54,8 @@ public class MyRequestResponseInterceptor implements EndpointInterceptor {
 
 	public void afterCompletion(MessageContext messageContext, Object endpoint,
 			Exception ex) throws Exception {
+
+		System.out.println("Entering afterCompletion");
 
 		SoapMessage soapMessage = (SoapMessage) messageContext.getRequest();
 
@@ -81,28 +81,34 @@ public class MyRequestResponseInterceptor implements EndpointInterceptor {
 		// Useful for logging request when deployed on Heroku
 		System.out.println();
 		System.out
-				.println("-------------- handleRequest SOAP Start --------------");
+				.println("-------------- afterCompletion SOAP Start --------------");
 		soapMessage.writeTo(System.out);
 		System.out.println();
 		System.out
-				.println("-------------- handleRequest SOAP End --------------");
+				.println("-------------- afterCompletion SOAP End --------------");
 		System.out.println();
 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		soapMessage.writeTo(out);
-		String strMsg = new String(out.toByteArray());
 
-		ApplicationContext ctx = new AnnotationConfigApplicationContext(
-				MongoConfig.class);
-		MongoOperations mongoOperation = (MongoOperations) ctx
-				.getBean("mongoTemplate");
+		try {
+			String strMsg = new String(out.toByteArray());
 
-		ConnectUpdate connectUpdate = new ConnectUpdate();
-		connectUpdate.setPayload(strMsg);
-		java.util.Date date = new java.util.Date();
-		connectUpdate.setTimestamp(new Timestamp(date.getTime()));
+			ConnectUpdate connectUpdate = new ConnectUpdate();
+			connectUpdate.setPayload(strMsg);
+			java.util.Date date = new java.util.Date();
+			connectUpdate.setTimestamp(new Timestamp(date.getTime()));
 
-		mongoOperation.save(connectUpdate);
+			System.out.println(connectUpdate.toString());
+
+			mongoTemplate.insert(connectUpdate);
+
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		System.out.println("Exiting afterCompletion");
 
 	}
 
