@@ -99,8 +99,6 @@ public class MyRequestResponseInterceptor implements EndpointInterceptor {
 			java.util.Date date = new java.util.Date();
 			connectUpdate.setTimestamp(new Timestamp(date.getTime()));
 
-			System.out.println(connectUpdate.toString());
-
 			mongoTemplate.insert(connectUpdate);
 
 		} catch (Exception e) {
